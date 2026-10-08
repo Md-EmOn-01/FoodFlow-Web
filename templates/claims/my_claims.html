@@ -29,7 +29,7 @@
         <div class="card-header">
             <div>
                 <h3 class="card-title">{{ claim.listing.food_name }}</h3>
-                <span class="card-subtitle">Claim #{{ claim.id }} &bull; {{ claim.claimed_at|date:"M d, Y H:i" }}</span>
+                <span class="card-subtitle">Claim #{{ claim.id }} &bull; {{ claim.claimed_at|date:"M d, Y, h:i A" }}</span>
             </div>
             <div>
                 <span class="badge badge-{{ claim.status }}">{{ claim.get_status_display }}</span>
@@ -50,7 +50,7 @@
                 <div class="pickup-code-display" style="font-size: 1.8rem;">{{ claim.pickup_code }}</div>
             </div>
             <p style="font-size: 0.85rem; color: var(--red-600); font-weight: 600;">
-                ⏰ Pickup Deadline: {{ claim.pickup_deadline|date:"M d, Y H:i" }} UTC
+                ⏰ Pickup Deadline: {{ claim.pickup_deadline|date:"M d, Y, h:i A" }}
             </p>
             {% endif %}
         </div>

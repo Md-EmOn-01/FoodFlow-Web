@@ -19,14 +19,15 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE("Seeding FoodFlow demo dataset..."))
 
         # 1. Superuser / Admin
-        admin_user, created = User.objects.get_or_create(
+        admin_user, _ = User.objects.get_or_create(
             username="admin",
-            defaults={'email': 'admin@foodflow.local', 'is_staff': True, 'is_superuser': True, 'role': 'donor'}
+            defaults={'email': 'admin@foodflow.local', 'role': 'donor'}
         )
-        if created:
-            admin_user.set_password("admin123")
-            admin_user.save()
-            self.stdout.write(self.style.SUCCESS("Created admin user: admin / admin123"))
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.set_password("admin123")
+        admin_user.save()
+        self.stdout.write(self.style.SUCCESS("Admin user ensured: admin / admin123"))
 
         # 2. Locations
         loc_dhanmondi, _ = Location.objects.get_or_create(address="House 12, Road 7", area="Dhanmondi", city="Dhaka", postal_code="1209")

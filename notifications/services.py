@@ -42,9 +42,10 @@ class NotificationService:
         notified_count = 0
 
         title = f"New Food Available: {listing.food_name}"
+        local_time_str = timezone.localtime(listing.expires_at).strftime('%Y-%m-%d %I:%M %p')
         message = (
             f"A donor in {listing.location.area}, {listing.location.city} just listed {listing.quantity} {listing.unit} "
-            f"of '{listing.food_name}'. Claim it before it expires at {listing.expires_at.strftime('%Y-%m-%d %H:%M UTC')}!"
+            f"of '{listing.food_name}'. Claim it before it expires at {local_time_str}!"
         )
 
         for recipient in matching_recipients:
@@ -72,9 +73,10 @@ class NotificationService:
         for claim in pending_claims:
             recipient = claim.recipient
             title = f"Urgent Expiry Alert: {listing.food_name}"
+            deadline_str = timezone.localtime(claim.pickup_deadline).strftime('%I:%M %p')
             msg = (
                 f"The food listing '{listing.food_name}' you claimed has urgency level '{urgency.upper()}'. "
-                f"Please pick it up before deadline: {claim.pickup_deadline.strftime('%H:%M UTC')}."
+                f"Please pick it up before deadline: {deadline_str}."
             )
             cls.create_notification(
                 recipient=recipient,
@@ -103,9 +105,10 @@ class NotificationService:
         Notifies recipient with pickup details.
         """
         title = f"Claim Confirmed: {claim.listing.food_name}"
+        deadline_str = timezone.localtime(claim.pickup_deadline).strftime('%Y-%m-%d %I:%M %p')
         message = (
             f"Your claim for {claim.claimed_quantity} {claim.listing.unit} of '{claim.listing.food_name}' is confirmed! "
-            f"Your 8-character Pickup Code is: {claim.pickup_code}. Please pick up by {claim.pickup_deadline.strftime('%Y-%m-%d %H:%M UTC')}."
+            f"Your 8-character Pickup Code is: {claim.pickup_code}. Please pick up by {deadline_str}."
         )
         cls.create_notification(
             recipient=claim.recipient,

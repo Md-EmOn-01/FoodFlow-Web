@@ -15,7 +15,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
         <div>
             <h2 style="color: var(--green-700);">Claim #{{ claim.id }}</h2>
-            <span style="color: var(--grey-500); font-size: 0.9rem;">Placed on {{ claim.claimed_at|date:"M d, Y H:i" }} UTC</span>
+            <span style="color: var(--grey-500); font-size: 0.9rem;">Placed on {{ claim.claimed_at|date:"M d, Y, h:i A" }}</span>
         </div>
         <div>
             <span class="badge badge-{{ claim.status }}">{{ claim.get_status_display }}</span>
@@ -54,7 +54,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--grey-200); padding: 0.5rem 0;">
             <strong>Pickup Deadline:</strong>
-            <span style="color: var(--red-600); font-weight: 600;">{{ claim.pickup_deadline|date:"l, M d, Y — H:i" }} UTC</span>
+            <span style="color: var(--red-600); font-weight: 600;">{{ claim.pickup_deadline|date:"l, M d, Y — h:i A" }}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
             <strong>Recipient:</strong>

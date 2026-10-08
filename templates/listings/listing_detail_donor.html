@@ -14,7 +14,7 @@
             <div class="card-header">
                 <div>
                     <h1 style="color: var(--green-700); font-size: 1.8rem;">{{ listing.food_name }}</h1>
-                    <span style="color: var(--grey-500);">Posted on {{ listing.created_at|date:"M d, Y H:i" }} UTC</span>
+                    <span style="color: var(--grey-500);">Posted on {{ listing.created_at|date:"M d, Y, h:i A" }}</span>
                 </div>
                 <div>
                     <span class="badge badge-{{ listing.status }}">{{ listing.get_status_display }}</span>
@@ -47,7 +47,7 @@
                     </div>
                     <div class="food-meta-item">
                         <strong>Expiry Deadline:</strong>
-                        <span>{{ listing.expires_at|date:"M d, Y H:i" }} UTC</span>
+                        <span>{{ listing.expires_at|date:"M d, Y, h:i A" }}</span>
                     </div>
                     <div class="food-meta-item">
                         <strong>Remaining Time:</strong>
@@ -88,7 +88,7 @@
                             <td style="padding: 0.75rem 0.5rem; font-weight: 600;">#{{ claim.id }}</td>
                             <td style="padding: 0.75rem 0.5rem;">{{ claim.recipient.user.username }} ({{ claim.recipient.user.phone|default:'No phone' }})</td>
                             <td style="padding: 0.75rem 0.5rem;">{{ claim.claimed_quantity }} {{ listing.unit }}</td>
-                            <td style="padding: 0.75rem 0.5rem;">{{ claim.pickup_deadline|date:"M d, H:i" }} UTC</td>
+                            <td style="padding: 0.75rem 0.5rem;">{{ claim.pickup_deadline|date:"M d, h:i A" }}</td>
                             <td style="padding: 0.75rem 0.5rem;">
                                 <span class="badge badge-{{ claim.status }}">{{ claim.get_status_display }}</span>
                             </td>
