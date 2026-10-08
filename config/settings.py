@@ -71,13 +71,24 @@ TEMPLATES = [
 WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
-# Database configuration (SQLite for development & local/serverless testing)
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Database configuration
+# Vercel serverless functions have a read-only root, but /tmp is writable.
+IS_VERCEL = 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV') is not None
+
+if IS_VERCEL:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': '/tmp/db.sqlite3',
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'

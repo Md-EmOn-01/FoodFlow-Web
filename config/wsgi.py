@@ -4,11 +4,33 @@ Exposes the WSGI callable as a module-level variable named ``application`` and `
 """
 
 import os
+import shutil
 from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
+# Handle Vercel serverless writable /tmp database setup
+if 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV'):
+    tmp_db = '/tmp/db.sqlite3'
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    source_db = os.path.join(base_dir, 'db.sqlite3')
+
+    if os.path.exists(source_db) and not os.path.exists(tmp_db):
+        try:
+            shutil.copyfile(source_db, tmp_db)
+        except Exception:
+            pass
+
 application = get_wsgi_application()
 
-# Alias for Vercel serverless functions
+# If running on Vercel and database needs initialization
+if 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV'):
+    try:
+        from django.core.management import call_command
+        call_command('migrate', interactive=False)
+        call_command('seed_foodflow_demo', interactive=False)
+    except Exception as e:
+        print(f"Vercel DB auto-init note: {e}")
+
+# Vercel serverless entrypoint
 app = application
