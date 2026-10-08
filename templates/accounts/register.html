@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Register — FoodFlow{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <h2 style="color: var(--green-700); margin-bottom: 0.5rem; text-align: center;">Join FoodFlow</h2>
+    <p style="color: var(--grey-500); text-align: center; margin-bottom: 2rem;">
+        Register as a Food Donor or Recipient to start rescuing surplus food.
+    </p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label class="form-label">I want to register as a:</label>
+            {{ form.role }}
+            {% if form.role.errors %}<div class="form-error">{{ form.role.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Username</label>
+                {{ form.username }}
+                {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Email Address</label>
+                {{ form.email }}
+                {% if form.email.errors %}<div class="form-error">{{ form.email.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Phone Number</label>
+            {{ form.phone }}
+            {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors.0 }}</div>{% endif %}
+        </div>
+
+        <!-- Role-Specific Fields Container -->
+        <div id="donor-fields" style="background: var(--green-50); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; border: 1px solid var(--green-700);">
+            <h4 style="color: var(--green-700); margin-bottom: 0.75rem;">Donor Details</h4>
+            <div class="form-group">
+                <label class="form-label">Donor Type</label>
+                {{ form.donor_type }}
+                {% if form.donor_type.errors %}<div class="form-error">{{ form.donor_type.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Business / Organization Name (Optional for households)</label>
+                {{ form.organization_name }}
+                {% if form.organization_name.errors %}<div class="form-error">{{ form.organization_name.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div id="recipient-fields" style="background: var(--green-50); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; border: 1px solid var(--green-700); display: none;">
+            <h4 style="color: var(--green-700); margin-bottom: 0.75rem;">Recipient Details</h4>
+            <div class="form-group">
+                <label class="form-label">Recipient Category</label>
+                {{ form.recipient_type }}
+                {% if form.recipient_type.errors %}<div class="form-error">{{ form.recipient_type.errors.0 }}</div>{% endif %}
+                <p class="form-help">Note: Recipient profiles must be verified by an administrator to claim food.</p>
+            </div>
+        </div>
+
+        <!-- Location Fields -->
+        <h4 style="color: var(--ink); margin: 1.5rem 0 0.75rem;">Location & Address</h4>
+        <div class="form-group">
+            <label class="form-label">Street Address</label>
+            {{ form.address }}
+            {% if form.address.errors %}<div class="form-error">{{ form.address.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Area / Neighborhood</label>
+                {{ form.area }}
+                {% if form.area.errors %}<div class="form-error">{{ form.area.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">City</label>
+                {{ form.city }}
+                {% if form.city.errors %}<div class="form-error">{{ form.city.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Postal / ZIP Code</label>
+            {{ form.postal_code }}
+            {% if form.postal_code.errors %}<div class="form-error">{{ form.postal_code.errors.0 }}</div>{% endif %}
+        </div>
+
+        <!-- Passwords -->
+        <h4 style="color: var(--ink); margin: 1.5rem 0 0.75rem;">Security</h4>
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">Password</label>
+                {{ form.password }}
+                {% if form.password.errors %}<div class="form-error">{{ form.password.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Confirm Password</label>
+                {{ form.password_confirm }}
+                {% if form.password_confirm.errors %}<div class="form-error">{{ form.password_confirm.errors.0 }}</div>{% endif %}
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;">
+            Create Account
+        </button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--grey-700);">
+        Already have an account? <a href="{% url 'accounts:login' %}">Log in here</a>
+    </p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const roleSelect = document.getElementById('id_role_select');
+        const donorFields = document.getElementById('donor-fields');
+        const recipientFields = document.getElementById('recipient-fields');
+
+        function toggleRoleFields() {
+            if (roleSelect.value === 'donor') {
+                donorFields.style.display = 'block';
+                recipientFields.style.display = 'none';
+            } else {
+                donorFields.style.display = 'none';
+                recipientFields.style.display = 'block';
+            }
+        }
+
+        if (roleSelect) {
+            roleSelect.addEventListener('change', toggleRoleFields);
+            toggleRoleFields();
+        }
+    });
+</script>
+{% endblock %}

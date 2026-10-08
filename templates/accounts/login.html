@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block title %}Login — FoodFlow{% endblock %}
+
+{% block content %}
+<div class="form-card" style="max-width: 450px;">
+    <h2 style="color: var(--green-700); margin-bottom: 0.5rem; text-align: center;">Welcome Back</h2>
+    <p style="color: var(--grey-500); text-align: center; margin-bottom: 2rem;">
+        Sign in to your FoodFlow account
+    </p>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="form-group">
+            <label class="form-label">Username</label>
+            {{ form.username }}
+            {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Password</label>
+            {{ form.password }}
+            {% if form.password.errors %}<div class="form-error">{{ form.password.errors.0 }}</div>{% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 1rem;">
+            Sign In
+        </button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1.5rem; font-size: 0.95rem; color: var(--grey-700);">
+        Don't have an account? <a href="{% url 'accounts:register' %}">Register now</a>
+    </p>
+</div>
+{% endblock %}

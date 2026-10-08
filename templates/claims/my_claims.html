@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}My Food Claims — FoodFlow{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="color: var(--green-700); font-size: 2rem;">My Food Claims</h1>
+        <p style="color: var(--grey-500);">Track your active reservations, pickup codes, and claim history.</p>
+    </div>
+    <div>
+        <a href="{% url 'listings:browse_food' %}" class="btn btn-primary">Browse Available Food</a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    <a href="{% url 'claims:my_claims' %}" class="btn btn-sm {% if not status_filter %}btn-primary{% else %}btn-secondary{% endif %}">All</a>
+    <a href="{% url 'claims:my_claims' %}?status=pending" class="btn btn-sm {% if status_filter == 'pending' %}btn-primary{% else %}btn-secondary{% endif %}">Pending Pickup</a>
+    <a href="{% url 'claims:my_claims' %}?status=completed" class="btn btn-sm {% if status_filter == 'completed' %}btn-primary{% else %}btn-secondary{% endif %}">Completed</a>
+    <a href="{% url 'claims:my_claims' %}?status=cancelled" class="btn btn-sm {% if status_filter == 'cancelled' %}btn-primary{% else %}btn-secondary{% endif %}">Cancelled</a>
+    <a href="{% url 'claims:my_claims' %}?status=expired" class="btn btn-sm {% if status_filter == 'expired' %}btn-primary{% else %}btn-secondary{% endif %}">Expired</a>
+</div>
+
+{% if claims %}
+<div class="grid grid-2">
+    {% for claim in claims %}
+    <div class="card" style="border-left: 4px solid {% if claim.status == 'pending' %}var(--green-700){% elif claim.status == 'completed' %}var(--grey-500){% else %}var(--red-600){% endif %};">
+        <div class="card-header">
+            <div>
+                <h3 class="card-title">{{ claim.listing.food_name }}</h3>
+                <span class="card-subtitle">Claim #{{ claim.id }} &bull; {{ claim.claimed_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <div>
+                <span class="badge badge-{{ claim.status }}">{{ claim.get_status_display }}</span>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <p style="font-size: 0.95rem; color: var(--grey-700); margin-bottom: 0.75rem;">
+                Reserved: <strong>{{ claim.claimed_quantity }} {{ claim.listing.unit }}</strong> from {{ claim.listing.donor.organization_name|default:claim.listing.donor.user.username }}
+            </p>
+            <p style="font-size: 0.9rem; color: var(--grey-700);">
+                📍 <em>{{ claim.listing.location.address }}, {{ claim.listing.location.area }}, {{ claim.listing.location.city }}</em>
+            </p>
+
+            {% if claim.status == 'pending' %}
+            <div class="pickup-code-box" style="margin: 1rem 0; padding: 0.75rem;">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--grey-500); font-weight: 700;">Your 8-Character Pickup Code:</div>
+                <div class="pickup-code-display" style="font-size: 1.8rem;">{{ claim.pickup_code }}</div>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--red-600); font-weight: 600;">
+                ⏰ Pickup Deadline: {{ claim.pickup_deadline|date:"M d, Y H:i" }} UTC
+            </p>
+            {% endif %}
+        </div>
+
+        <div class="card-footer">
+            <a href="{% url 'claims:claim_detail' pk=claim.pk %}" class="btn btn-secondary btn-sm">View Full Details</a>
+            
+            {% if claim.can_be_cancelled %}
+            <form class="cancel-claim-form" action="{% url 'claims:claim_cancel' pk=claim.pk %}" method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger btn-sm">Cancel Claim</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card" style="text-align: center; padding: 4rem 2rem;">
+    <p style="color: var(--grey-500); font-size: 1.1rem; margin-bottom: 1.5rem;">No food claims found.</p>
+    <a href="{% url 'listings:browse_food' %}" class="btn btn-primary">Browse Available Food Donations</a>
+</div>
+{% endif %}
+{% endblock %}
