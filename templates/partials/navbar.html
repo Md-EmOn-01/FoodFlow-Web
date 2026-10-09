@@ -12,6 +12,7 @@
                     <!-- Donor Navigation -->
                     <li><a href="{% url 'accounts:donor_dashboard' %}" class="nav-link">Dashboard</a></li>
                     <li><a href="{% url 'listings:donor_listings' %}" class="nav-link">My Listings</a></li>
+                    <li><a href="{% url 'claims:my_claims' %}" class="nav-link">Food Claims</a></li>
                     <li><a href="{% url 'listings:donor_listing_create' %}" class="nav-link btn btn-primary btn-sm" style="color: white;">+ Donate Food</a></li>
                     <li><a href="{% url 'claims:verify_pickup' %}" class="nav-link">Verify Pickup</a></li>
                 {% elif user.is_recipient %}
@@ -39,6 +40,7 @@
                 <!-- Public / Anonymous User Navigation -->
                 <li><a href="{% url 'home' %}" class="nav-link">Home</a></li>
                 <li><a href="{% url 'listings:browse_food' %}" class="nav-link">Available Food</a></li>
+                <li><a href="{% url 'claims:my_claims' %}" class="nav-link">Track Claims</a></li>
                 <li><a href="{% url 'accounts:login' %}" class="nav-link">Login</a></li>
                 <li><a href="{% url 'accounts:register' %}" class="btn btn-primary btn-sm">Register</a></li>
             {% endif %}

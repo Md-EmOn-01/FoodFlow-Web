@@ -49,30 +49,79 @@ def claim_create_view(request, listing_id):
         return redirect('listings:food_detail', pk=listing_id)
 
 
-@login_required
-def recipient_claims_list_view(request):
+def claims_list_view(request):
     """
-    Displays all past and active claims made by the logged-in recipient.
+    Displays claims based on user role and authentication status:
+    - Recipients: past and active claims made by them, with their 8-character pickup code.
+    - Donors: incoming claims placed by recipients on their donated food listings.
+    - Admins / Staff: all claims on the platform.
+    - Unauthenticated visitors: a guest tracking interface where they can look up their
+      8-character pickup code or be invited to log in / register.
     """
-    if not request.user.is_recipient:
-        messages.error(request, "Access restricted to recipient accounts.")
-        return redirect('home')
+    status_filter = request.GET.get('status', '').strip().lower()
+    lookup_code = request.GET.get('pickup_code', '').strip().upper()
+    lookup_result = None
+    claims = None
 
-    recipient = request.user.recipient_profile
-    status_filter = request.GET.get('status', '')
+    if lookup_code:
+        lookup_result = Claim.objects.filter(pickup_code=lookup_code).select_related(
+            'listing', 'listing__donor__user', 'listing__location', 'recipient__user'
+        ).first()
+        if not lookup_result:
+            messages.warning(
+                request,
+                f"No claim found matching pickup code '{lookup_code}'. Please check the 8-character code and try again."
+            )
 
-    claims = Claim.objects.filter(recipient=recipient).select_related(
-        'listing', 'listing__donor__user', 'listing__location'
-    )
+    if request.user.is_authenticated:
+        if request.user.is_recipient:
+            recipient = getattr(request.user, 'recipient_profile', None)
+            if recipient:
+                claims = Claim.objects.filter(recipient=recipient)
+            else:
+                claims = Claim.objects.none()
+            page_title = "My Food Claims"
+            page_subtitle = "Track your active reservations, pickup codes, and claim history."
+        elif request.user.is_donor:
+            donor = getattr(request.user, 'donor_profile', None)
+            if donor:
+                claims = Claim.objects.filter(listing__donor=donor)
+            else:
+                claims = Claim.objects.none()
+            page_title = "Incoming Food Claims"
+            page_subtitle = "Track food claims and reservations placed on your donated food items."
+        elif request.user.is_staff:
+            claims = Claim.objects.all()
+            page_title = "Platform Food Claims"
+            page_subtitle = "All food reservations and pickup activities across the FoodFlow platform."
+        else:
+            claims = Claim.objects.none()
+            page_title = "Food Claims"
+            page_subtitle = "Track food claims and reservations."
 
-    if status_filter:
-        claims = claims.filter(status=status_filter)
+        claims = claims.select_related(
+            'listing', 'listing__donor__user', 'listing__location', 'recipient__user'
+        ).order_by('-claimed_at')
+
+        if status_filter:
+            claims = claims.filter(status=status_filter)
+    else:
+        page_title = "Food Claims & Pickup Tracking"
+        page_subtitle = "Track food reservation status with your 8-character pickup code, or log in to manage your account claims."
 
     context = {
         'claims': claims,
         'status_filter': status_filter,
+        'lookup_code': lookup_code,
+        'lookup_result': lookup_result,
+        'page_title': page_title,
+        'page_subtitle': page_subtitle,
     }
     return render(request, 'claims/my_claims.html', context)
+
+
+# Maintain backward compatibility for any existing view imports
+recipient_claims_list_view = claims_list_view
 
 
 @login_required
@@ -147,10 +196,12 @@ def donor_verify_pickup_view(request):
                 form = PickupVerificationForm()
             except ValidationError as e:
                 messages.error(request, f"Verification Failed: {e.message}")
-        else:
-            messages.error(request, "Please enter a valid 8-character pickup code.")
     else:
-        form = PickupVerificationForm()
+        code_param = request.GET.get('code', '').strip().upper()
+        if code_param:
+            form = PickupVerificationForm(initial={'pickup_code': code_param})
+        else:
+            form = PickupVerificationForm()
 
     # Recent completed pickups for reference
     recent_pickups = Claim.objects.filter(

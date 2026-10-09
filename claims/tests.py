@@ -139,3 +139,54 @@ class ClaimsServiceAndWorkflowTests(TestCase):
         }, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(Claim.objects.filter(recipient=self.unverified_rec).count(), 0)
+
+    def test_anonymous_user_can_access_claims_page_without_login_redirect(self):
+        """Test that anyone can access /claims/ without being forcefully redirected to login."""
+        from django.urls import reverse
+        response = self.client.get(reverse('claims:my_claims'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Track Claim by 8-Character Pickup Code")
+        self.assertContains(response, "Log In to View Claims")
+
+    def test_anonymous_user_can_lookup_claim_by_pickup_code(self):
+        """Test that an unauthenticated user can look up a valid claim by pickup code."""
+        from django.urls import reverse
+        claim = ClaimService.create_claim(
+            listing_id=self.listing.id,
+            recipient=self.recipient,
+            quantity=Decimal("5.00")
+        )
+        response = self.client.get(reverse('claims:my_claims'), {'pickup_code': claim.pickup_code})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.listing.food_name)
+        self.assertContains(response, "Reserved Quantity:")
+
+    def test_donor_can_access_claims_page_and_view_incoming_claims(self):
+        """Test that a Donor can access /claims/ and see incoming claims on their listings."""
+        from django.urls import reverse
+        claim = ClaimService.create_claim(
+            listing_id=self.listing.id,
+            recipient=self.recipient,
+            quantity=Decimal("6.00")
+        )
+        self.client.force_login(self.donor_user)
+        response = self.client.get(reverse('claims:my_claims'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Incoming Food Claims")
+        self.assertContains(response, self.listing.food_name)
+        self.assertContains(response, self.recipient_user.username)
+        self.assertContains(response, "Verify Pickup")
+
+    def test_recipient_can_access_claims_page_and_view_own_claims(self):
+        """Test that a Recipient can access /claims/ and see their pickup code and claim."""
+        from django.urls import reverse
+        claim = ClaimService.create_claim(
+            listing_id=self.listing.id,
+            recipient=self.recipient,
+            quantity=Decimal("4.00")
+        )
+        self.client.force_login(self.recipient_user)
+        response = self.client.get(reverse('claims:my_claims'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "My Food Claims")
+        self.assertContains(response, claim.pickup_code)
