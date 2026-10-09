@@ -31,6 +31,9 @@
 
                 <!-- Shared Authenticated Links -->
                 <li><a href="{% url 'accounts:profile' %}" class="nav-link">Profile ({{ user.username }})</a></li>
+                {% if user.is_staff %}
+                    <li><a href="{% url 'admin:index' %}" class="nav-link">Admin Panel</a></li>
+                {% endif %}
                 <li><a href="{% url 'accounts:logout' %}" class="nav-link btn btn-secondary btn-sm">Logout</a></li>
             {% else %}
                 <!-- Public / Anonymous User Navigation -->

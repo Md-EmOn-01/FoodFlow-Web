@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from locations.models import Location
 from listings.models import FoodListing
 from claims.models import Claim
@@ -12,15 +13,25 @@ from .models import User, Donor, Recipient
 from .forms import UserRegistrationForm, UserLoginForm, ProfileUpdateForm
 
 
+def get_dashboard_redirect(user):
+    """
+    Directs authenticated users to their corresponding dashboard or admin panel.
+    """
+    if user.is_superuser or user.is_staff:
+        return redirect('admin:index')
+    elif user.is_donor:
+        return redirect('accounts:donor_dashboard')
+    elif user.is_recipient:
+        return redirect('accounts:recipient_dashboard')
+    return redirect('home')
+
+
 def home_view(request):
     """
     Public homepage showcasing FoodFlow concept, platform metrics, and quick actions.
     """
     if request.user.is_authenticated:
-        if request.user.is_donor:
-            return redirect('accounts:donor_dashboard')
-        elif request.user.is_recipient:
-            return redirect('accounts:recipient_dashboard')
+        return get_dashboard_redirect(request.user)
 
     total_listings = FoodListing.objects.count()
     active_available = FoodListing.visible_to_recipients().count()
@@ -45,7 +56,7 @@ def register_view(request):
     Handles registration for both Donors and Recipients with atomic location linking.
     """
     if request.user.is_authenticated:
-        return redirect('home')
+        return get_dashboard_redirect(request.user)
 
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
@@ -93,10 +104,7 @@ def register_view(request):
 
                     login(request, user)
                     messages.success(request, f"Welcome to FoodFlow, {user.username}! Your account has been created successfully.")
-
-                    if user.is_donor:
-                        return redirect('accounts:donor_dashboard')
-                    return redirect('accounts:recipient_dashboard')
+                    return get_dashboard_redirect(user)
 
             except Exception as e:
                 messages.error(request, f"Registration failed due to a server error: {e}")
@@ -110,12 +118,10 @@ def register_view(request):
 
 def login_view(request):
     """
-    Handles user authentication and directs to role-based dashboards.
+    Handles user authentication with username or email and directs to role-based dashboards.
     """
     if request.user.is_authenticated:
-        if request.user.is_donor:
-            return redirect('accounts:donor_dashboard')
-        return redirect('accounts:recipient_dashboard')
+        return get_dashboard_redirect(request.user)
 
     if request.method == 'POST':
         form = UserLoginForm(request, data=request.POST)
@@ -123,30 +129,29 @@ def login_view(request):
             user = form.get_user()
             login(request, user)
             messages.success(request, f"Welcome back, {user.username}!")
-            next_url = request.GET.get('next')
-            if next_url:
+
+            # Verify redirect target is safe against open redirect vulnerabilities
+            next_url = request.GET.get('next') or request.POST.get('next')
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
                 return redirect(next_url)
 
-            if user.is_donor:
-                return redirect('accounts:donor_dashboard')
-            elif user.is_recipient:
-                return redirect('accounts:recipient_dashboard')
-            return redirect('home')
+            return get_dashboard_redirect(user)
         else:
-            messages.error(request, "Invalid username or password. Please try again.")
+            messages.error(request, "Invalid username/email or password. Please try again.")
     else:
         form = UserLoginForm()
 
     return render(request, 'accounts/login.html', {'form': form})
 
 
-@login_required
 def logout_view(request):
     """
-    Logs out the current authenticated user.
+    Logs out the current authenticated user and redirects to home.
+    Supports both GET and POST requests.
     """
-    logout(request)
-    messages.info(request, "You have been logged out successfully.")
+    if request.user.is_authenticated:
+        logout(request)
+        messages.info(request, "You have been logged out successfully.")
     return redirect('home')
 
 
@@ -223,7 +228,11 @@ def donor_dashboard_view(request):
         messages.error(request, "Access restricted: Donor account required.")
         return redirect('accounts:recipient_dashboard')
 
-    donor = get_object_or_404(Donor, user=request.user)
+    donor = getattr(request.user, 'donor_profile', None)
+    if not donor:
+        messages.error(request, "Donor profile not found. Please complete your registration.")
+        return redirect('accounts:profile')
+
     listings = donor.listings.all().select_related('location', 'expiry_tracker', 'safety_check')
 
     total_listings = listings.count()
@@ -260,7 +269,10 @@ def recipient_dashboard_view(request):
         messages.error(request, "Access restricted: Recipient account required.")
         return redirect('accounts:donor_dashboard')
 
-    recipient = get_object_or_404(Recipient, user=request.user)
+    recipient = getattr(request.user, 'recipient_profile', None)
+    if not recipient:
+        messages.error(request, "Recipient profile not found. Please complete your registration.")
+        return redirect('accounts:profile')
     
     # Query visible food in recipient's city/area
     available_food = FoodListing.visible_to_recipients()

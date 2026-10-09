@@ -12,6 +12,14 @@
     <form method="post" novalidate>
         {% csrf_token %}
 
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" style="margin-bottom: 1.25rem;">
+                {% for error in form.non_field_errors %}
+                    <p style="margin: 0;">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
         <div class="form-group">
             <label class="form-label">I want to register as a:</label>
             {{ form.role }}

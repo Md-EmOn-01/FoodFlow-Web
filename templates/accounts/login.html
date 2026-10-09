@@ -6,16 +6,30 @@
 <div class="form-card" style="max-width: 450px;">
     <h2 style="color: var(--green-700); margin-bottom: 0.5rem; text-align: center;">Welcome Back</h2>
     <p style="color: var(--grey-500); text-align: center; margin-bottom: 2rem;">
-        Sign in to your FoodFlow account
+        Sign in with your username or email address
     </p>
 
     <form method="post" novalidate>
         {% csrf_token %}
+        {% if request.GET.next %}
+            <input type="hidden" name="next" value="{{ request.GET.next }}">
+        {% elif request.POST.next %}
+            <input type="hidden" name="next" value="{{ request.POST.next }}">
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" style="margin-bottom: 1.25rem;">
+                {% for error in form.non_field_errors %}
+                    <p style="margin: 0;">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
 
         <div class="form-group">
-            <label class="form-label">Username</label>
+            <label class="form-label">Username or Email</label>
             {{ form.username }}
             {% if form.username.errors %}<div class="form-error">{{ form.username.errors.0 }}</div>{% endif %}
+            <p class="form-help" style="font-size: 0.8rem; color: var(--grey-500); margin-top: 0.25rem;">You can use either your registered username or email address.</p>
         </div>
 
         <div class="form-group">

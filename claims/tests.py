@@ -97,3 +97,45 @@ class ClaimsServiceAndWorkflowTests(TestCase):
                 pickup_code=claim.pickup_code,
                 donor_user=other_user  # Wrong donor
             )
+
+    def test_invalid_pickup_code_rejected(self):
+        """Test that invalid, malformed or non-existent pickup codes are rejected."""
+        with self.assertRaises(ValidationError):
+            ClaimService.verify_and_complete_pickup(pickup_code="SHORT", donor_user=self.donor_user)
+
+        with self.assertRaises(ValidationError):
+            ClaimService.verify_and_complete_pickup(pickup_code="XXXXXXXX", donor_user=self.donor_user)
+
+    def test_completed_pickup_cannot_be_completed_again(self):
+        """Test that a completed claim cannot be verified a second time."""
+        claim = ClaimService.create_claim(
+            listing_id=self.listing.id,
+            recipient=self.recipient,
+            quantity=Decimal("5.00")
+        )
+        ClaimService.verify_and_complete_pickup(pickup_code=claim.pickup_code, donor_user=self.donor_user)
+
+        with self.assertRaises(ValidationError):
+            ClaimService.verify_and_complete_pickup(pickup_code=claim.pickup_code, donor_user=self.donor_user)
+
+    def test_cancelled_claim_cannot_be_completed(self):
+        """Test that cancelled claim cannot be verified."""
+        claim = ClaimService.create_claim(
+            listing_id=self.listing.id,
+            recipient=self.recipient,
+            quantity=Decimal("5.00")
+        )
+        ClaimService.cancel_claim(claim_id=claim.id, user=self.recipient_user)
+
+        with self.assertRaises(ValidationError):
+            ClaimService.verify_and_complete_pickup(pickup_code=claim.pickup_code, donor_user=self.donor_user)
+
+    def test_unverified_recipient_blocked_at_view_level(self):
+        """Test that unverified recipients attempting to POST a claim are blocked."""
+        self.client.force_login(self.unverified_user)
+        from django.urls import reverse
+        response = self.client.post(reverse('claims:claim_create', kwargs={'listing_id': self.listing.id}), {
+            'claimed_quantity': '5.00'
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Claim.objects.filter(recipient=self.unverified_rec).count(), 0)

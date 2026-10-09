@@ -1,6 +1,7 @@
 from django import forms
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.password_validation import validate_password
 from locations.models import Location
 from .models import Donor, Recipient
 
@@ -85,8 +86,19 @@ class UserRegistrationForm(forms.ModelForm):
         password = cleaned_data.get("password")
         password_confirm = cleaned_data.get("password_confirm")
 
-        if password and password_confirm and password != password_confirm:
-            self.add_error('password_confirm', "Passwords do not match.")
+        if password and password_confirm:
+            if password != password_confirm:
+                self.add_error('password_confirm', "Passwords do not match.")
+            else:
+                # Validate password against Django's configured password validators
+                try:
+                    dummy_user = User(
+                        username=cleaned_data.get('username', ''),
+                        email=cleaned_data.get('email', '')
+                    )
+                    validate_password(password, user=dummy_user)
+                except forms.ValidationError as error:
+                    self.add_error('password', error)
 
         role = cleaned_data.get("role")
         if role == User.ROLE_DONOR:
@@ -101,10 +113,38 @@ class UserRegistrationForm(forms.ModelForm):
 
 class UserLoginForm(AuthenticationForm):
     """
-    Standard clean login form with custom styled form inputs.
+    Standard clean login form supporting login with either username or registered email.
     """
-    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Username'}))
-    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-input', 'placeholder': 'Password'}))
+    username = forms.CharField(
+        label="Username or Email",
+        widget=forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Username or Email', 'autocomplete': 'username'})
+    )
+    password = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={'class': 'form-input', 'placeholder': 'Password', 'autocomplete': 'current-password'})
+    )
+
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        password = self.cleaned_data.get("password")
+
+        if username is not None and password:
+            clean_username = username.strip()
+            # If input is an email, look up the corresponding user's username
+            matched_user = User.objects.filter(email__iexact=clean_username).first()
+            lookup_username = matched_user.username if matched_user else clean_username
+
+            self.user_cache = authenticate(
+                self.request,
+                username=lookup_username,
+                password=password
+            )
+            if self.user_cache is None:
+                raise self.get_invalid_login_error()
+            else:
+                self.confirm_login_allowed(self.user_cache)
+
+        return self.cleaned_data
 
 
 class ProfileUpdateForm(forms.ModelForm):
