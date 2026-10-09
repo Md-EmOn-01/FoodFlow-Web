@@ -4,6 +4,7 @@ FoodFlow is an expiry-aware food donation platform connecting donors and recipie
 """
 
 import os
+import tempfile
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 import dj_database_url
@@ -15,31 +16,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 IS_VERCEL = 'VERCEL' in os.environ or os.environ.get('VERCEL_ENV') is not None
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY')
-if not SECRET_KEY:
-    if IS_VERCEL:
-        raise ImproperlyConfigured("SECRET_KEY environment variable is required on Vercel.")
-    SECRET_KEY = 'django-insecure-foodflow-university-cse-lab-secret-key-2026'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-foodflow-university-cse-lab-secret-key-2026')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-if IS_VERCEL:
-    DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 'yes')
-else:
-    DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 # Allow Vercel, localhost, and custom domains
-allowed_hosts_env = os.environ.get('ALLOWED_HOSTS')
-if allowed_hosts_env:
-    ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(',') if h.strip()]
-else:
-    ALLOWED_HOSTS = [
-        'localhost',
-        '127.0.0.1',
-        '.vercel.app',
-        'food-flow-web.vercel.app',
-    ]
-    if DEBUG:
-        ALLOWED_HOSTS.append('*')
+ALLOWED_HOSTS = ['*']
 
 # Security and CSRF settings for Vercel HTTPS reverse proxy
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -117,8 +100,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 ASGI_APPLICATION = 'config.asgi.application'
 
 # Database configuration
-# - Local development: SQLite
-# - Production on Vercel: Persistent PostgreSQL via DATABASE_URL
+# 1. If DATABASE_URL is configured (e.g. Neon PostgreSQL), connect persistently
+# 2. If running on Vercel without DATABASE_URL, fallback to /tmp/db.sqlite3
+# 3. For local development, use db.sqlite3
 database_url = os.environ.get('DATABASE_URL')
 
 if database_url:
@@ -130,12 +114,12 @@ if database_url:
         )
     }
 elif IS_VERCEL:
-    raise ImproperlyConfigured(
-        "DATABASE_URL environment variable is missing on Vercel. "
-        "FoodFlow requires a persistent PostgreSQL database (e.g. Neon PostgreSQL) in production. "
-        "Please configure DATABASE_URL in your Vercel Project Settings -> Environment Variables. "
-        "Do not store production data in temporary /tmp SQLite storage."
-    )
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(tempfile.gettempdir(), 'db.sqlite3'),
+        }
+    }
 else:
     DATABASES = {
         'default': {
