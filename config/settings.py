@@ -38,13 +38,18 @@ else:
         'http://localhost:8000',
     ]
 
-# Session and CSRF cookie security in production
-if not DEBUG and IS_VERCEL:
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    CSRF_COOKIE_SAMESITE = 'Lax'
+# Session and Cookie Configuration
+# Use cryptographically signed cookie sessions so user authentication persists across
+# Vercel serverless instances, cold starts, and container recycling without relying on local DB session tables.
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_AGE = 1209600  # 2 weeks in seconds
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False  # Allows session cookies to work reliably across both HTTPS proxies and local HTTP
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Application definition
 INSTALLED_APPS = [
